@@ -1,0 +1,6 @@
+C:/cpp/Scara/cmake-build-debug-mingw/CMakeFiles/IK_SCARA_Test.dir
+C:/cpp/Scara/cmake-build-debug-mingw/CMakeFiles/edit_cache.dir
+C:/cpp/Scara/cmake-build-debug-mingw/CMakeFiles/rebuild_cache.dir
+C:/cpp/Scara/cmake-build-debug-mingw/src/CMakeFiles/scara_lib.dir
+C:/cpp/Scara/cmake-build-debug-mingw/src/CMakeFiles/edit_cache.dir
+C:/cpp/Scara/cmake-build-debug-mingw/src/CMakeFiles/rebuild_cache.dir
