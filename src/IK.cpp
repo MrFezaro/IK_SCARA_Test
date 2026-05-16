@@ -42,7 +42,6 @@ std::optional<IKResult> fiveBarIK(
     auto jB = solveChain(baseB, target, l1, l2, false);
     if (!jA || !jB) return std::nullopt;
 
-    // distance from end-effector to line between the two passive joints
     float dist = signedDistToLine(*jA, *jB, target);
     if (dist <= MIN_EE_LINE_DIST) return std::nullopt;
 
@@ -50,6 +49,9 @@ std::optional<IKResult> fiveBarIK(
     float t2 = atan2f(-((*jB)[1] - baseB[1]), (*jB)[0] - baseB[0]) * (180.f / 3.14159f);
     float p1 = atan2f(-(target[1] - (*jA)[1]), target[0] - (*jA)[0]) * (180.f / 3.14159f);
     float p2 = atan2f(-(target[1] - (*jB)[1]), target[0] - (*jB)[0]) * (180.f / 3.14159f);
+
+    for (float angle : {t1, t2, p1, p2})
+        if (angle < 0.f || angle > 180.f) return std::nullopt;
 
     return IKResult{ *jA, *jB, t1, p1, t2, p2, dist };
 }

@@ -27,8 +27,8 @@ static std::vector<float> calcAnimTarget(AnimState& anim,
     case AnimShape::LineH: {
         float s   = fmodf(t * 2.f, 1.f);
         int   seg = (int)(t * 2.f) % 2;
-        wx = (seg == 0) ? -64.f + 128.f * s : 64.f - 128.f * s;
-        wy = 23.f;
+        wx = (seg == 0) ? -45.f + 90.f * s : 45.f - 90.f * s;
+        wy = 45.f;
         break;
     }
 

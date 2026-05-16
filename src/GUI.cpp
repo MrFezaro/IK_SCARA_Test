@@ -7,6 +7,8 @@
 #include <optional>
 #include <string>
 #include <chrono>
+#include <iostream>
+
 #include "SerialComm/SerialComm.hpp"
 
 static SerialComm* motorA = nullptr;
@@ -32,13 +34,23 @@ static void sendMotorAngles(const IKResult& ik) {
 
     // encoder 0 = upright = 90 deg in our coord system
     // so offset by -90 deg before sending
-    float setpointA = (ik.theta1 - 90.f) * DEG_TO_RAD;
-    float setpointB = (ik.theta2 - 90.f) * DEG_TO_RAD;
+    auto wrapToRange = [](float deg) {
+        while (deg < 0.f)   deg += 180.f;
+        while (deg > 180.f) deg -= 180.f;
+        return deg;
+    };
 
-    if (motorA->getNumRemainingCommands() < 3)
+    float setpointA = (wrapToRange(ik.theta1) - 90.f) * DEG_TO_RAD;
+    float setpointB = (wrapToRange(ik.theta2) - 90.f) * DEG_TO_RAD;
+
+    if (motorA->getNumRemainingCommands() < 3) {
         motorA->setPositionSetpoint(setpointA);
-    if (motorB->getNumRemainingCommands() < 3)
+        std::cout << ik.theta1-90 << " " << ik.theta2-90 << std::endl;
+    }
+    if (motorB->getNumRemainingCommands() < 3) {
         motorB->setPositionSetpoint(setpointB);
+        std::cout << ik.theta1-90 << " " << ik.theta2-90 << std::endl;
+    }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(25));
 }
@@ -204,14 +216,20 @@ static void drawScene(HDC hdc, int W, int H) {
     drawBaseJoint(hdc, baseB, "B");
 }
 
+static std::vector<float> homeTarget() {
+    auto origin = worldOrigin();
+    return { origin[0] - 2.29f * pxPerCm, origin[1] - 88.07f * pxPerCm };
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     static int W = 800, H = 600;
 
     switch (msg) {
     case WM_CREATE:
         initBases(W, H);
-        target       = {W/2.f, H/2.f - 80.f};
+        target       = homeTarget();
         manualTarget = target;
+        hasTarget    = true;
         lastTick     = std::chrono::steady_clock::now();
         SetTimer(hwnd, 1, 16, NULL);
         break;
@@ -219,6 +237,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_SIZE:
         W = LOWORD(lp); H = HIWORD(lp);
         initBases(W, H);
+        if (!hasTarget) { target = homeTarget(); manualTarget = target; }
         InvalidateRect(hwnd, NULL, FALSE);
         break;
 

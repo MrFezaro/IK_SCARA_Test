@@ -12,7 +12,7 @@ struct AnimState {
     float     speed       = 0.5f;
 
     float     blendT      = 1.f;   // 0 = fully at fromPos, 1 = fully on animation
-    float     blendSpeed  = 1.f;   // how fast to blend in seconds
+    float     blendSpeed  = 0.5f;   // how fast to blend in seconds
     std::vector<float> fromPos = {0.f, 0.f};  // position we're blending from
 };
 
