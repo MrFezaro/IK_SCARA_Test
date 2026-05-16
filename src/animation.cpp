@@ -7,46 +7,36 @@ static constexpr float CY     =  50.f;
 static constexpr float RADIUS =  15.f;
 static constexpr float HALF   =  15.f;
 
-std::vector<float> animStep(AnimState& anim, float dt,
-                             const std::vector<float>& origin, float pxPerCm)
+void startAnim(AnimState& anim, AnimShape newShape,
+               const std::vector<float>& currentTarget)
 {
-    anim.t += anim.speed * dt;
-    anim.t -= floorf(anim.t);
+    anim.fromPos = currentTarget;
+    anim.blendT  = 0.f;
+    anim.shape   = newShape;
+}
 
-    float t = anim.t;
+static std::vector<float> calcAnimTarget(AnimState& anim,
+                                          const std::vector<float>& origin,
+                                          float pxPerCm)
+{
+    float t  = anim.t;
     float wx = CX, wy = CY;
 
     switch (anim.shape) {
 
-    case AnimShape::Heart: {
-        float angle = 2.f * PI * t;
-        // parametric heart curve, scaled and centered
-        wx = CX + RADIUS * 0.6f * sinf(angle) * sinf(angle) * sinf(angle);
-        wy = CY + RADIUS * 0.5f * (
-            1.3f * cosf(angle)
-            - 0.5f * cosf(2.f * angle)
-            - 0.2f * cosf(3.f * angle)
-            - 0.1f * cosf(4.f * angle));
-        break;
-    }
-
     case AnimShape::LineH: {
         float s   = fmodf(t * 2.f, 1.f);
         int   seg = (int)(t * 2.f) % 2;
-        switch (seg) {
-        case 0: wx = -64.f + 128.f * s; wy = 23.f; break;  // left -> right
-        case 1: wx =  64.f - 128.f * s; wy = 23.f; break;  // right -> left
-        }
+        wx = (seg == 0) ? -64.f + 128.f * s : 64.f - 128.f * s;
+        wy = 23.f;
         break;
     }
 
     case AnimShape::LineV: {
         float s   = fmodf(t * 2.f, 1.f);
         int   seg = (int)(t * 2.f) % 2;
-        switch (seg) {
-        case 0: wx = 0.f; wy = 23.f + 60.f * s; break;  // bottom -> top
-        case 1: wx = 0.f; wy = 83.f - 60.f * s; break;  // top -> bottom
-        }
+        wx = 0.f;
+        wy = (seg == 0) ? 23.f + 60.f * s : 83.f - 60.f * s;
         break;
     }
 
@@ -86,24 +76,58 @@ std::vector<float> animStep(AnimState& anim, float dt,
         wy = CY + RADIUS * sinf(4.f * PI * t) * 0.5f;
         break;
 
-    default:
+    case AnimShape::Heart: {
+        float angle = 2.f * PI * t;
+        wx = CX + RADIUS * 0.6f * sinf(angle) * sinf(angle) * sinf(angle);
+        wy = CY + RADIUS * 0.5f * (
+            1.3f * cosf(angle)
+            - 0.5f * cosf(2.f * angle)
+            - 0.2f * cosf(3.f * angle)
+            - 0.1f * cosf(4.f * angle));
         break;
     }
 
-    float px = origin[0] + wx * pxPerCm;
-    float py = origin[1] - wy * pxPerCm;
-    return { px, py };
+    default: break;
+    }
+
+    return { origin[0] + wx * pxPerCm,
+             origin[1] - wy * pxPerCm };
+}
+
+// smooth step (ease in/out) — also exposed via animation.hpp for gui.cpp
+float smoothStep(float x) {
+    x = fmaxf(0.f, fminf(1.f, x));
+    return x * x * (3.f - 2.f * x);
+}
+
+std::vector<float> animStep(AnimState& anim, float dt,
+                             const std::vector<float>& origin, float pxPerCm)
+{
+    anim.t += anim.speed * dt;
+    anim.t -= floorf(anim.t);
+
+    // advance blend
+    anim.blendT = fminf(1.f, anim.blendT + anim.blendSpeed * dt);
+    float blend = smoothStep(anim.blendT);
+
+    auto animPos = calcAnimTarget(anim, origin, pxPerCm);
+
+    // lerp from previous position to animation
+    return {
+        anim.fromPos[0] + blend * (animPos[0] - anim.fromPos[0]),
+        anim.fromPos[1] + blend * (animPos[1] - anim.fromPos[1])
+    };
 }
 
 std::string shapeName(AnimShape s) {
     switch (s) {
-    case AnimShape::Heart: return "Heart";
-    case AnimShape::LineH: return "Line H";
-    case AnimShape::LineV: return "Line V";
+    case AnimShape::LineH:    return "Line H";
+    case AnimShape::LineV:    return "Line V";
     case AnimShape::Square:   return "Square";
     case AnimShape::Triangle: return "Triangle";
     case AnimShape::Circle:   return "Circle";
     case AnimShape::Figure8:  return "Figure-8";
+    case AnimShape::Heart:    return "Heart";
     default:                  return "None";
     }
 }

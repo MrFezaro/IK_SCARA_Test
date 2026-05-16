@@ -7,17 +7,23 @@
 enum class AnimShape { None, LineH, LineV, Square, Triangle, Circle, Figure8, Heart };
 
 struct AnimState {
-    AnimShape shape  = AnimShape::None;
-    float     t      = 0.f;   // 0..1 progress through the shape
-    float     speed  = 0.5f;  // cycles per second
+    AnimShape shape       = AnimShape::None;
+    float     t           = 0.f;
+    float     speed       = 0.5f;
+
+    float     blendT      = 1.f;   // 0 = fully at fromPos, 1 = fully on animation
+    float     blendSpeed  = 1.f;   // how fast to blend in seconds
+    std::vector<float> fromPos = {0.f, 0.f};  // position we're blending from
 };
 
-// returns next target position in pixel space
-// origin: pixel coords of world (0,0)
-// pxPerCm: scale
 std::vector<float> animStep(AnimState& anim, float dt,
                              const std::vector<float>& origin, float pxPerCm);
 
+void startAnim(AnimState& anim, AnimShape newShape,
+               const std::vector<float>& currentTarget);
+
 std::string shapeName(AnimShape s);
+
+float smoothStep(float x);
 
 #endif

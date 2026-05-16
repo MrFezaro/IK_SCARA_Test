@@ -7,12 +7,41 @@
 #include <optional>
 #include <string>
 #include <chrono>
+#include "SerialComm/SerialComm.hpp"
 
-static std::vector<float> baseA, baseB, target;
+static SerialComm* motorA = nullptr;
+static SerialComm* motorB = nullptr;
+
+void setMotors(SerialComm* a, SerialComm* b) {
+    motorA = a;
+    motorB = b;
+}
+
+static std::vector<float> baseA, baseB;
+static std::vector<float> target;       // current real (possibly blending) position
+static std::vector<float> manualTarget; // destination when shape == None
 static bool               hasTarget = false;
 static float              pxPerCm   = 3.5f;
 static AnimState          anim;
 static std::chrono::steady_clock::time_point lastTick;
+
+static constexpr float DEG_TO_RAD = 3.14159265f / 180.f;
+
+static void sendMotorAngles(const IKResult& ik) {
+    if (!motorA || !motorB) return;
+
+    // encoder 0 = upright = 90 deg in our coord system
+    // so offset by -90 deg before sending
+    float setpointA = (ik.theta1 - 90.f) * DEG_TO_RAD;
+    float setpointB = (ik.theta2 - 90.f) * DEG_TO_RAD;
+
+    if (motorA->getNumRemainingCommands() < 3)
+        motorA->setPositionSetpoint(setpointA);
+    if (motorB->getNumRemainingCommands() < 3)
+        motorB->setPositionSetpoint(setpointB);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+}
 
 static void initBases(int W, int H) {
     float halfBase = (BASE_SEPARATION * pxPerCm) / 2.f;
@@ -134,7 +163,7 @@ static void drawScene(HDC hdc, int W, int H) {
         SetTextColor(hdc, RGB(150, 150, 150));
         SetBkMode(hdc, TRANSPARENT);
         TextOutA(hdc, W/2-140, (int)baseA[1]-80,
-                 "click to place  |  1-5 = animation  |  0 = stop", 46);
+                 "click to place  |  1-7 = animation  |  0 = stop", 46);
         return;
     }
 
@@ -152,6 +181,7 @@ static void drawScene(HDC hdc, int W, int H) {
         DeleteObject(eb);
         DeleteObject(ep);
 
+        sendMotorAngles(*result);
         drawInfoPanel(hdc, H, *result);
     } else {
         HPEN rp = CreatePen(PS_SOLID, 2, RGB(220, 50, 50));
@@ -180,8 +210,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
     case WM_CREATE:
         initBases(W, H);
-        target   = {W/2.f, H/2.f - 80.f};
-        lastTick = std::chrono::steady_clock::now();
+        target       = {W/2.f, H/2.f - 80.f};
+        manualTarget = target;
+        lastTick     = std::chrono::steady_clock::now();
         SetTimer(hwnd, 1, 16, NULL);
         break;
 
@@ -194,34 +225,53 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_LBUTTONDOWN:
     case WM_MOUSEMOVE:
         if (msg == WM_MOUSEMOVE && !(wp & MK_LBUTTON)) break;
-        anim.shape = AnimShape::None;
-        target     = {(float)LOWORD(lp), (float)HIWORD(lp)};
-        hasTarget  = true;
-        InvalidateRect(hwnd, NULL, FALSE);
+        {
+            // Treat manual clicks exactly like startAnim: capture current
+            // blended position as fromPos and ease toward the new destination.
+            anim.fromPos  = target;   // where the arm actually is right now
+            anim.blendT   = 0.f;      // restart the ease-in
+            anim.shape    = AnimShape::None;
+            manualTarget  = {(float)LOWORD(lp), (float)HIWORD(lp)};
+            hasTarget     = true;
+            InvalidateRect(hwnd, NULL, FALSE);
+        }
         break;
 
     case WM_KEYDOWN:
-        if (wp == VK_UP)    { pxPerCm = std::min(pxPerCm + 0.25f, 8.f);   initBases(W, H); InvalidateRect(hwnd, NULL, FALSE); }
-        if (wp == VK_DOWN)  { pxPerCm = std::max(pxPerCm - 0.25f, 0.25f); initBases(W, H); InvalidateRect(hwnd, NULL, FALSE); }
-        if (wp == VK_RIGHT) { anim.speed = std::min(anim.speed + 0.05f, 5.f);  InvalidateRect(hwnd, NULL, FALSE); }
+        if (wp == VK_UP)    { pxPerCm = std::min(pxPerCm + 0.25f, 8.f);    initBases(W, H); InvalidateRect(hwnd, NULL, FALSE); }
+        if (wp == VK_DOWN)  { pxPerCm = std::max(pxPerCm - 0.25f, 0.25f);  initBases(W, H); InvalidateRect(hwnd, NULL, FALSE); }
+        if (wp == VK_RIGHT) { anim.speed = std::min(anim.speed + 0.05f, 5.f);   InvalidateRect(hwnd, NULL, FALSE); }
         if (wp == VK_LEFT)  { anim.speed = std::max(anim.speed - 0.05f, 0.05f); InvalidateRect(hwnd, NULL, FALSE); }
-        if (wp == '0') { anim.shape = AnimShape::None;     InvalidateRect(hwnd, NULL, FALSE); }
-        if (wp == '1') { anim.shape = AnimShape::LineH;    hasTarget = true; }
-        if (wp == '2') { anim.shape = AnimShape::LineV;    hasTarget = true; }
-        if (wp == '3') { anim.shape = AnimShape::Square;   hasTarget = true; }
-        if (wp == '4') { anim.shape = AnimShape::Triangle; hasTarget = true; }
-        if (wp == '5') { anim.shape = AnimShape::Circle;   hasTarget = true; }
-        if (wp == '6') { anim.shape = AnimShape::Figure8;  hasTarget = true; }
-        if (wp == '7') { anim.shape = AnimShape::Heart; hasTarget = true; }
+        if (wp == '0') { anim.shape = AnimShape::None;                           InvalidateRect(hwnd, NULL, FALSE); }
+        if (wp == '1') { startAnim(anim, AnimShape::LineH,    target); hasTarget = true; }
+        if (wp == '2') { startAnim(anim, AnimShape::LineV,    target); hasTarget = true; }
+        if (wp == '3') { startAnim(anim, AnimShape::Square,   target); hasTarget = true; }
+        if (wp == '4') { startAnim(anim, AnimShape::Triangle, target); hasTarget = true; }
+        if (wp == '5') { startAnim(anim, AnimShape::Circle,   target); hasTarget = true; }
+        if (wp == '6') { startAnim(anim, AnimShape::Figure8,  target); hasTarget = true; }
+        if (wp == '7') { startAnim(anim, AnimShape::Heart,    target); hasTarget = true; }
         break;
 
     case WM_TIMER: {
-        if (anim.shape == AnimShape::None) break;
         auto  now = std::chrono::steady_clock::now();
         float dt  = std::chrono::duration<float>(now - lastTick).count();
         lastTick  = now;
-        target    = animStep(anim, dt, worldOrigin(), pxPerCm);
-        InvalidateRect(hwnd, NULL, FALSE);
+
+        if (anim.shape != AnimShape::None) {
+            // Animation driving: animStep owns the full blend + movement.
+            target = animStep(anim, dt, worldOrigin(), pxPerCm);
+            InvalidateRect(hwnd, NULL, FALSE);
+        } else if (anim.blendT < 1.f) {
+            // Manual target: ease from fromPos toward manualTarget using the
+            // same blendSpeed and smoothStep as animation transitions.
+            anim.blendT = fminf(1.f, anim.blendT + anim.blendSpeed * dt);
+            float blend = smoothStep(anim.blendT);
+            target = {
+                anim.fromPos[0] + blend * (manualTarget[0] - anim.fromPos[0]),
+                anim.fromPos[1] + blend * (manualTarget[1] - anim.fromPos[1])
+            };
+            InvalidateRect(hwnd, NULL, FALSE);
+        }
         break;
     }
 
