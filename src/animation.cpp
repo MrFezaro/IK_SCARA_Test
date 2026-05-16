@@ -94,7 +94,7 @@ static std::vector<float> calcAnimTarget(AnimState& anim,
              origin[1] - wy * pxPerCm };
 }
 
-// smooth step (ease in/out) — also exposed via animation.hpp for gui.cpp
+// smooth step (ease in/out) - also exposed via animation.hpp for gui.cpp
 float smoothStep(float x) {
     x = fmaxf(0.f, fminf(1.f, x));
     return x * x * (3.f - 2.f * x);

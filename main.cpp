@@ -1,9 +1,6 @@
-#include <windows.h>
 #include "GUI.hpp"
-#include "SerialComm/SerialComm.hpp"
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nCmdShow) {
-    // connect motors — comment out if running without hardware
     SerialComm motorA("COM8");
     SerialComm motorB("COM9");
 
@@ -15,7 +12,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nCmdShow) {
 
     motorB.setNumPolePairs(15);
     motorB.setCurrentLimit(10000);
-    motorB.setPositionKp(15.0);
+    motorB.setPositionKp(10.0);
     motorB.setVelocityKp(1.0);
     motorB.setDrivingMode(Position);
 

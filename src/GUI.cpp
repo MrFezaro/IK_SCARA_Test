@@ -108,14 +108,14 @@ static void drawInfoPanel(HDC hdc, int H, const IKResult& ik) {
     SetBkMode(hdc, TRANSPARENT);
     char buf[128];
 
-    // chain A — blue
+    // chain A - blue
     SetTextColor(hdc, RGB(55, 138, 221));
     snprintf(buf, sizeof(buf), "theta1:  %.1f deg", ik.theta1);
     TextOutA(hdc, 16, 16, buf, (int)strlen(buf));
     snprintf(buf, sizeof(buf), "  phi1 (distal A):  %.1f deg", ik.phi1);
     TextOutA(hdc, 16, 36, buf, (int)strlen(buf));
 
-    // chain B — pink
+    // chain B - pink
     SetTextColor(hdc, RGB(212, 83, 126));
     snprintf(buf, sizeof(buf), "theta2:  %.1f deg", ik.theta2);
     TextOutA(hdc, 16, 62, buf, (int)strlen(buf));
