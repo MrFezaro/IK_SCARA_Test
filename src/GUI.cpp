@@ -48,6 +48,10 @@ static void sendMotorAngles(const IKResult& ik) {
         std::cout << ik.theta1-90 << " " << ik.theta2-90 << std::endl;
     }
     if (motorB->getNumRemainingCommands() < 3) {
+        // SensorData data{};
+        // motorB->getData(data);
+        // motorB->setOpenLoopSpeed((setpointB-data.position)*-0.5);
+        // std::cout << ik.theta1-90 << " " << ik.theta2-90 << std::endl;
         motorB->setPositionSetpoint(setpointB);
         std::cout << ik.theta1-90 << " " << ik.theta2-90 << std::endl;
     }
