@@ -3,7 +3,7 @@
 
 static constexpr float PI     = 3.14159265f;
 static constexpr float CX     =   0.f;
-static constexpr float CY     =  50.f;
+static constexpr float CY     =  65.f;
 static constexpr float RADIUS =  15.f;
 static constexpr float HALF   =  15.f;
 
@@ -36,7 +36,7 @@ static std::vector<float> calcAnimTarget(AnimState& anim,
         float s   = fmodf(t * 2.f, 1.f);
         int   seg = (int)(t * 2.f) % 2;
         wx = 0.f;
-        wy = (seg == 0) ? 23.f + 60.f * s : 83.f - 60.f * s;
+        wy = (seg == 0) ? 43.f + 40.f * s : 83.f - 40.f * s;
         break;
     }
 
