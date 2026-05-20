@@ -49,6 +49,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nCmdShow) {
     return 0;
 }
 
+// Simple test with open loop control
+
 // int main() {
 //     SerialComm serialComm("COM9"); // Probably "/dev/ttyACM0" for linux.
 //
