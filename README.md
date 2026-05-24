@@ -2,7 +2,9 @@
 
 A real-time inverse kinematics demo for a five-bar parallel robot, driven by two [Athena Drive](https://github.com/ami-iit/paper_ramadoss_2022_ral_humanoid-base-estimation) FOC controllers over serial. The GUI lets you click a target position or run built-in trajectory animations, and the IK solution is immediatly given as setpoints for the motors.
 
-[![IK_SCARA_test](https://img.youtube.com/vi/7aMmL1JBfC8/0.jpg)](https://youtu.be/7aMmL1JBfC8)
+![IK_SCARA_test](GUI.png)
+
+[Watch on YouTube](https://youtu.be/7aMmL1JBfC8)
 
 ---
 
