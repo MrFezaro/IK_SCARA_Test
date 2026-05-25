@@ -32,6 +32,8 @@ Joint angles are constrained to 0–180 degrees. Any target outside the reachabl
 
 Encoder zero corresponds to the arm pointing straight up (90 degrees in the robot coordinate frame), so each computed angle is offset by -90 degrees before being sent as a position setpoint. Motor commands are rate-limited with a queue depth check to avoid flooding the serial buffer.
 
+> **Note on mechanical setup:** The magnet placed on the motor output shaft must be parallel to and roughly centered on the encoder sensor at all times. The mechanical alignment of the feedback sensor needs to be precise and stable, because any wobble or offset will directly effect encoder accuracy and lead to unreliable and suboptimal actuation.
+
 **Blending**
 
 All target transitions (click or animation start) use a smoothstep ease-in/out blend so the arm accelerates and decelerates smoothly rather than snapping between positions.
